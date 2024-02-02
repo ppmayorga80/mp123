@@ -1,5 +1,5 @@
 scripts:
-  version: python -c "from computing_toolbox import __version__;print(__version__)"
+  version: cat .bumpversion.cfg | grep current_version | awk -F= '{print $2}' | xargs
   yapf: bash scripts/yapf.sh --apply
   pylint: bash scripts/pylint.sh
   pytest: bash scripts/pytest.sh

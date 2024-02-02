@@ -9,15 +9,10 @@ source venv/bin/activate
 
 if [[ ! $PYTHONPATH =~ $PWD ]]; then
   echo "Exporting PYTHONPATH"
-  export PYTHONPATH=$PWD:$PYTHONPATH
-fi
-
-if [[ ! -f .env ]]; then
-  tail -n +2 env-example > .env
+  export PYTHONPATH=$PWD:$PWD/src:$PYTHONPATH
 fi
 
 pip install --upgrade pip
-pip install pipenv
 pip install -r requirements.txt
 
 #extra packages to install
