@@ -22,7 +22,7 @@ Arguments:
 
 Options:
     --filter=REGEX      use the regex to filter files and only include those files
-                        that match the given regular expression [default: .*]
+                        that match the given regular expression [default: ^[^.].*]
     --apply             flag to apply renaming, otherwise only a dry-run will be run
 """
 import json
@@ -34,7 +34,7 @@ from docopt import docopt
 from tabulate import tabulate
 
 
-def list_files(directory: str, filter: str) -> list[str]:
+def list_files(directory: str, filter: str, verbose: bool = False) -> list[str]:
     """List all files in a directory"""
     paths = []
     regex = re.compile(rf"{filter}")
@@ -42,9 +42,13 @@ def list_files(directory: str, filter: str) -> list[str]:
     # walk over all the files
     for root, dirs, files in os.walk(directory):
         for file in files:
-            path = os.path.join(root, file)
-            if regex.findall(path):
+            if regex.findall(file):
+                path = os.path.join(root, file)
                 paths.append(path)
+                if verbose:
+                    print(path)
+
+        break
     # sort the paths
     paths = sorted(paths)
     return paths
@@ -83,14 +87,23 @@ def get_new_names(input_names: int) -> list[str]:
 def rename_files(input_names: list[str], output_names: list[str]):
     """rename files"""
     n = len(input_names)
-    qty=0
+    qty = 0
     with tqdm(range(n), desc="Renaming") as pbar:
         for a, b in zip(input_names, output_names):
             if a != b:
                 os.rename(a, b)
-                qty+=1
+                qty += 1
                 pbar.set_postfix_str(f"{qty}x✅")
             pbar.update()
+
+
+def clean_directory(directory: str):
+    """clean directory from hidden files"""
+
+    hidden_paths = list_files(directory=directory, filter=r"^\..*")
+    for path in tqdm(hidden_paths, desc="Cleaning hidden files..."):
+        os.unlink(path)
+        pass#print(k + 1, path)
 
 
 def main():
@@ -99,11 +112,13 @@ def main():
     input_names = list_files(directory=args["<DIR>"], filter=args["--filter"])
     output_names = get_new_names(input_names=input_names)
 
-    data = [(a, b,"⭕️" if a==b else "✅") for a, b in zip(input_names, output_names)]
-    print(tabulate(data, headers=("INPUT", "OUTPUT","RENAME"), tablefmt="simple"))
+    data = [(a, b, "⭕️" if a == b else "✅") for a, b in zip(input_names, output_names)]
+    print(tabulate(data, headers=("INPUT", "OUTPUT", "RENAME"), tablefmt="simple"))
 
     if args["--apply"]:
         rename_files(input_names, output_names)
+
+    clean_directory(directory=args["<DIR>"])
 
 
 if __name__ == '__main__':
