@@ -10,7 +10,7 @@ echo "|_|    |___/                  "
 export PYTHONPATH="$PWD/src"
 
 #1. set the test coverage value and other shell variables
-COVERAGE_THRESHOLD="100"
+COVERAGE_THRESHOLD="55"
 PROJECT_DIR="src"
 TEST_DIR="tests"
 

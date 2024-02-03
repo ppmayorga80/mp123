@@ -1,5 +1,11 @@
 scripts:
-  version: cat .bumpversion.cfg | grep current_version | awk -F= '{print $2}' | xargs
+  version: python -c "import toml;p=toml.load(open('pyproject.toml'));print(p['project']['version'])"
   yapf: bash scripts/yapf.sh --apply
   pylint: bash scripts/pylint.sh
   pytest: bash scripts/pytest.sh
+
+  build:
+    - pip install .
+    - echo "To make your programs available in your system"
+    - echo "ensure you have a symlink to ./venv/bin/YOUR-APP"
+    - echo "available in your PATH"

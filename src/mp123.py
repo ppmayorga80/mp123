@@ -25,7 +25,6 @@ Options:
                         that match the given regular expression [default: ^[^.].*]
     --apply             flag to apply renaming, otherwise only a dry-run will be run
 """
-import json
 import os
 import re
 
@@ -34,21 +33,18 @@ from docopt import docopt
 from tabulate import tabulate
 
 
-def list_files(directory: str, filter: str, verbose: bool = False) -> list[str]:
+def list_files(directory: str, filter_str: str) -> list[str]:
     """List all files in a directory"""
     paths = []
-    regex = re.compile(rf"{filter}")
+    regex = re.compile(rf"{filter_str}")
 
     # walk over all the files
-    for root, dirs, files in os.walk(directory):
+    for _, (root, _, files) in zip(range(1), os.walk(directory)):
         for file in files:
             if regex.findall(file):
                 path = os.path.join(root, file)
                 paths.append(path)
-                if verbose:
-                    print(path)
 
-        break
     # sort the paths
     paths = sorted(paths)
     return paths
@@ -58,25 +54,27 @@ def split_path(path: str) -> tuple[str, str, str]:
     """Split a path into base-dir, name and extension"""
     dir_and_base, ext = os.path.splitext(path)
     directory, basename = os.path.split(dir_and_base)
-    return (directory, basename, ext)
+    return directory, basename, ext
 
 
-def get_new_names(input_names: int) -> list[str]:
-    """Generate new names for n random names"""
+def get_new_names(input_names: list[str]) -> list[str]:
+    """Generate new names for n random names
+        starting value: 1
+        ending value: len(input_names)
+        all values with leading zeros
+    """
     # 1. get the format
     n = len(input_names)
     max_len = len(f"{n}")
     fmt = f"{{k:0{max_len}}}"
 
     # 2. split names and extension
-    input_names_split = [
-        split_path(path)
-        for path in input_names
-    ]
+    input_names_split = [split_path(path) for path in input_names]
 
     # 3. build the names with extension and sorted results
     names = [
-        os.path.join(dir_k, fmt.format(k=k) + ext_k)
+        os.path.join(dir_k,
+                     fmt.format(k=k) + ext_k)
         for k, (dir_k, base_k, ext_k) in enumerate(input_names_split, start=1)
     ]
 
@@ -100,20 +98,25 @@ def rename_files(input_names: list[str], output_names: list[str]):
 def clean_directory(directory: str):
     """clean directory from hidden files"""
 
-    hidden_paths = list_files(directory=directory, filter=r"^\..*")
+    hidden_paths = list_files(directory=directory, filter_str=r"^\..*")
     for path in tqdm(hidden_paths, desc="Cleaning hidden files..."):
         os.unlink(path)
-        pass#print(k + 1, path)
 
 
 def main():
+    """main entry point to be called when install this project"""
     args = docopt(__doc__)
 
-    input_names = list_files(directory=args["<DIR>"], filter=args["--filter"])
+    input_names = list_files(directory=args["<DIR>"],
+                             filter_str=args["--filter"])
     output_names = get_new_names(input_names=input_names)
 
-    data = [(a, b, "⭕️" if a == b else "✅") for a, b in zip(input_names, output_names)]
-    print(tabulate(data, headers=("INPUT", "OUTPUT", "RENAME"), tablefmt="simple"))
+    data = [(a, b, "⭕️" if a == b else "✅")
+            for a, b in zip(input_names, output_names)]
+    print(
+        tabulate(data,
+                 headers=("INPUT", "OUTPUT", "RENAME"),
+                 tablefmt="simple"))
 
     if args["--apply"]:
         rename_files(input_names, output_names)
